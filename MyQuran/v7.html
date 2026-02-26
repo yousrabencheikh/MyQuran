@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyQuran</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-dark: #333633; --accent-green: #6e8b7e; --search-sage: #5d7a6d; --text-white: #ffffff; }
+        * { box-sizing: border-box; }
+        body { background-color: var(--bg-dark); margin: 0; direction: rtl; color: var(--text-white); font-family: 'Amiri', serif; }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: rgba(30,30,30,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000; }
+        #readerControls { display: none; align-items: center; gap: 15px; }
+        .branding-container { text-align: center; padding: 30px 0; display: flex; flex-direction: column; align-items: center; }
+        .lotus-icon { width: 50px; height: 50px; filter: invert(1); opacity: 0.8; }
+        .main-title { font-family: 'Playfair Display', serif; font-size: 3.5rem; margin: 0; }
+        
+        /* Fixed Search Bar Styling */
+        .search-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto 40px;
+            padding: 0 20px;
+        }
+        .search-bar {
+            width: 100%;
+            padding: 12px 45px 12px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: 0.3s ease;
+            text-align: center;
+        }
+        .search-bar::placeholder { color: rgba(255, 255, 255, 0.7); }
+        .search-bar:focus { border: 1px solid var(--accent-green); box-shadow: 0 0 15px rgba(110, 139, 126, 0.4); }
+        .search-icon { position: absolute; left: 35px; top: 50%; transform: translateY(-50%); color: white; font-size: 18px; pointer-events: none; opacity: 0.7; }
+     
+        #readerPage { display: none; padding: 30px 20px; max-width: 900px; margin: auto; }
+        .bismillah-header { font-size: 45px; color: var(--accent-green); text-align: center; margin: 30px 0; }
+        .ayah-text { font-size: 32px; line-height: 2.5; padding: 0 8px; cursor: pointer; border-radius: 8px; display: inline; }
+        .playing { background: rgba(110, 139, 126, 0.4); }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding: 20px 30px; max-width: 1100px; margin: 0 auto; }
+        .surah-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); }
+        #actionMenu { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a; border-top: 3px solid var(--accent-green); padding: 20px; z-index: 2000; border-radius: 20px 20px 0 0; }
+        .menu-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; background: var(--accent-green); color: white; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+        .bookmark-btn { display: none; background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--accent-green); padding: 8px 15px; border-radius: 20px; margin: 10px auto; cursor: pointer; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="app-overlay">
+    <nav>
+        <div class="nav-brand" style="font-family:'Playfair Display'; font-weight:bold;">MyQuran</div>
+        <div id="readerControls">
+            <select id="reciterSelect" onchange="loadReader(currentSurahNum, currentSurahName)" style="background:#444; color:white; border:none; padding:5px; border-radius:5px;">
+               <option value="ar.alafasy">Mishary Alafasy</option>
+                <option value="ar.mahermuaiqly">Maher Al Mueaqly</option>
+                <option value="ar.abdulsamad">AbdulBaset</option>
+                <option value="ar.husary">Mahmoud Al-Hussary</option>
+                <option value="ar.minshawi">Mohamed Al-Minshawi</option>
+            </select>
+        </div>
+        <div style="opacity: 0.7;"></div>
+    </nav>
+
+    <div id="homePage">
+        <div style="width: 100%; min-height: 150px; background: #6D8B7F; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; gap: 10px;">
+            <div style="color: white; font-size: 28px; font-family: 'Amiri', serif; font-weight: 400;">ذَٰلِكَ ٱلْكِتَـٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًۭى لِّلْمُتَّقِينَ ٢</div>
+            <div style="color: white; font-size: 1.1rem; font-family: 'Inter', sans-serif; font-style: italic; font-weight: 300; max-width: 800px;">“This is the Book about which there is no doubt, a guidance for those conscious of Allah.”</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.9rem;">Surah Baqarah Ayat 2</div>
+        </div>
+
+        <div class="branding-container">
+            <img src="images/icons8-quran-66.png" alt="Play" width="90">
+            <h1 class="main-title">MyQuran</h1>
+            <button id="continueBtn" class="bookmark-btn" onclick="resumeLastRead()"></button>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-bar" placeholder="Search for a Surah..." oninput="filterSurahs()">
+            <span class="search-icon"><img src="images/icons8-search-24.png" alt="Play" width="18" ></span>
+        </div>
+       
+        <div id="surahGrid" class="grid-container"></div>
+    </div>
+
+    <div id="readerPage">
+        <button class="menu-btn" style="width:auto; padding:8px 20px; margin-bottom:20px;" onclick="showHome()">← Back</button>
+        <h2 id="surahTitle" style="text-align:center; font-family:'Playfair Display'; font-size:2.5rem;"></h2>
+    
+        <div id="surahControls" style="display:none; justify-content: center; gap: 15px; margin-bottom: 20px;">
+            <button class="menu-btn" onclick="playFullSurah()" style="background: #6D8B7F;">Play Full Surah</button>
+            <button class="menu-btn" onclick="pauseAudio()" style="background: #6D8B7F;">Pause</button>
+        </div>
+        <div id="quranContainer" style="text-align: justify; direction: rtl;"></div>
+    </div>
+</div>
+
+<div id="actionMenu">
+    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+        <span id="menuLabel" style="color:var(--accent-green); font-weight:bold;">Verse Details</span>
+        <button onclick="closeMenu()" style="background:none; border:none; color:white; font-size:20px;">✕</button>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <button class="menu-btn" onclick="handleAction('play')">▶ Play</button>
+        <button class="menu-btn" onclick="handleAction('trans')">Translation</button>
+        <button class="menu-btn" onclick="handleAction('tafsir')">Tafsir</button>
+    </div>
+    <div id="menuDisplay" style="display:none; background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; margin-top:15px; font-family:'Inter', sans-serif; line-height:1.6;"></div>
+</div>
+
+<audio id="globalAudio"></audio>
+
+<script>
+// Function to start the Surah from the beginning
+function playFullSurah() {
+    openMenu(0); // Select the first verse (index 0)
+    handleAction('play');
+}
+
+// Function to pause whatever is playing
+function pauseAudio() {
+    audio.pause();
+}
+
+// Logic tweak: Show the Surah controls only when the reader is loaded
+function showSurahControls() {
+    document.getElementById('surahControls').style.display = 'flex';
+}
+
+    const audio = document.getElementById('globalAudio');
+    let allSurahs = [], ayahs = [], currentSurahNum, currentSurahName, selectedIndex;
+
+    async function init() {
+        const res = await fetch('https://api.alquran.cloud/v1/surah');
+        const data = await res.json();
+        allSurahs = data.data;
+        displaySurahs(allSurahs);
+        checkBookmark();
+    }
+
+    audio.onended = () => {
+        if (selectedIndex < ayahs.length - 1) {
+            openMenu(selectedIndex + 1);
+            handleAction('play');
+        }
+    };
+
+    function displaySurahs(list) {
+        document.getElementById('surahGrid').innerHTML = list.map(s => `
+            <div class="surah-card" onclick="loadReader(${s.number}, '${s.englishName}')">
+                <strong>${s.number}. ${s.englishName}</strong><br><small>${s.name}</small>
+            </div>`).join('');
+    }
+
+    async function loadReader(num, name) {
+        currentSurahNum = num; currentSurahName = name;
+        localStorage.setItem('lastSurah', JSON.stringify({num, name}));
+        document.getElementById('homePage').style.display = 'none';
+        document.getElementById('readerPage').style.display = 'block';
+        document.getElementById('readerControls').style.display = 'flex';
+        showSurahControls(); // SHOW CONTROLS HERE
+        document.getElementById('surahTitle').innerText = name;
+        const rec = document.getElementById('reciterSelect').value;
+        const res = await fetch(`https://api.alquran.cloud/v1/surah/${num}/${rec}`);
+        const data = await res.json();
+        ayahs = data.data.ayahs;
+        renderReader();
+    }
+
+    function renderReader() {
+        const container = document.getElementById('quranContainer');
+        container.innerHTML = "";
+        if (currentSurahNum != 9) {
+            const bismHeader = document.createElement('div');
+            bismHeader.className = 'bismillah-header';
+            bismHeader.innerText = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+            container.appendChild(bismHeader);
+        }
+        let verseCounter = 1;
+        ayahs.forEach((a, i) => {
+            let text = a.text;
+            if (currentSurahNum == 1 && (text.includes("بِسْمِ ٱللَّهِ") || text.includes("بِسْمِ اللَّهِ"))) {
+                return; // SKIP THIS COMPLETELY
+            } 
+            
+            if (i === 0 && currentSurahNum != 9) {
+                text = text.replace(/^(بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ|بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ)/, "").trim();
+            }
+            const span = document.createElement('span');
+            span.className = 'ayah-text';
+            span.id = `ayah-${i}`;
+            span.innerHTML = `${text} <span style="color:var(--accent-green); font-size:18px">﴿${verseCounter}﴾</span> `;
+            span.onclick = () => openMenu(i);
+            container.appendChild(span);
+            verseCounter++;
+        });
+    }
+
+    function openMenu(index) {
+        selectedIndex = index;
+        document.getElementById('actionMenu').style.display = 'block';
+        document.getElementById('menuDisplay').style.display = 'none';
+        highlightAyah(index);
+    }
+
+    function highlightAyah(idx) {
+        document.querySelectorAll('.ayah-text').forEach(el => el.classList.remove('playing'));
+        const el = document.getElementById(`ayah-${idx}`);
+        if (el) { el.classList.add('playing'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }
+
+    async function handleAction(type) {
+        const display = document.getElementById('menuDisplay');
+        if (type === 'play') { 
+            audio.src = ayahs[selectedIndex].audio; 
+            audio.play(); 
+        } else if (type === 'trans') {
+            display.style.display = 'block';
+            display.style.direction = 'ltr';
+            display.innerText = "Loading translation...";
+            const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ayahs[selectedIndex].number}/en.sahih`);
+            const data = await res.json();
+            display.innerText = data.data.text;
+        } else if (type === 'tafsir') {
+            display.style.display = 'block';
+            display.style.direction = 'rtl';
+            display.innerText = "جاري تحميل التفسير...";
+            const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ayahs[selectedIndex].number}/ar.jalalayn`);
+            const data = await res.json();
+            display.innerText = data.data.text;
+        }
+    }
+
+    function checkBookmark() {
+        const last = JSON.parse(localStorage.getItem('lastSurah'));
+        if (last) {
+            const btn = document.getElementById('continueBtn');
+            btn.style.display = 'block';
+            btn.innerText = `Continue Reading: ${last.name}`;
+        }
+    }
+
+    function resumeLastRead() {
+        const last = JSON.parse(localStorage.getItem('lastSurah'));
+        if (last) loadReader(last.num, last.name);
+    }
+
+    function showHome() {
+        document.getElementById('homePage').style.display = 'block';
+        document.getElementById('readerPage').style.display = 'none';
+        document.getElementById('readerControls').style.display = 'none';
+        document.getElementById('surahControls').style.display = 'none'; // HIDE CONTROLS HERE
+        audio.pause();
+        closeMenu();
+        checkBookmark();
+    }
+
+    function filterSurahs() {
+        const val = document.getElementById('searchInput').value.toLowerCase();
+        displaySurahs(allSurahs.filter(s => s.englishName.toLowerCase().includes(val)));
+    }
+
+    function closeMenu() { document.getElementById('actionMenu').style.display = 'none'; }
+    init();
+</script>
+</body>
+</html>
